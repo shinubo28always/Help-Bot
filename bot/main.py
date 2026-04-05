@@ -13,16 +13,6 @@ app = Client(
     plugins=dict(root="bot") # YEH LINE ADD KARNI HAI (Taake gc_handler automatically connect ho jaye)
 )
 
-@app.on_message(filters.command("start") & filters.private)
-async def start_cmd(client: Client, message: Message):
-    if message.from_user.id != Config.OWNER_ID:
-        return await message.reply_text("Bhai, yeh ek private bot hai. Aap isay use nahi kar sakte.")
-    
-    await message.reply_text(
-        f"Hello Master! Main zinda hoon aur kaam ke liye tayyar hoon.\n"
-        f"Aap current settings check karne ke liye /settings daba sakte hain."
-    )
-
 @app.on_message(filters.command("settings") & filters.user(Config.OWNER_ID))
 async def settings_cmd(client: Client, message: Message):
     current_cmd = await db.get_active_command()
