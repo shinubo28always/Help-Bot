@@ -12,14 +12,19 @@ class RegexParser:
         }
 
         # 1. Quality nikalna (1080p, 720p, 480p)
-        quality_match = re.search(r'(1080p|720p|480p|2160p)', filename, re.IGNORECASE)
+        quality_match = re.search(r'(1080p|720p|480p|2160p|4k)', filename, re.IGNORECASE)
         if quality_match:
             data["quality"] = quality_match.group(1).lower()
 
-        # 2. Bracket wala kachra saaf karna (e.g. [SubsPlease], (Web-rip))
-        clean_name = re.sub(r'\[.*?\]|\(.*?\)', '', filename)
-        # Extension hatana (.mkv, .mp4)
-        clean_name = re.sub(r'\.(mkv|mp4|avi)', '', clean_name).strip()
+        # 2. Brackt hatana aur Quality hatana title ke liye
+        # Sab se pehle quality hatayen taake woh title ka hissa na banay
+        clean_name = re.sub(r'(?i)(1080p|720p|480p|2160p|4k)', '', filename)
+
+        # Extension hatana
+        clean_name = re.sub(r'\.(mkv|mp4|avi|webm)', '', clean_name)
+
+        # Bracket wala kachra saaf karna (e.g. [SubsPlease], (Web-rip))
+        clean_name = re.sub(r'\[.*?\]|\(.*?\)', '', clean_name)
 
         # 3. Season Nikalna (S01, S1, Season 1)
         season_match = re.search(r'(?i)(?:S|Season\s*)(\d+)', clean_name)
@@ -32,12 +37,13 @@ class RegexParser:
         episode_match = re.search(r'(?i)(?:E|Ep|Episode\s*|-)\s*(\d+)', clean_name)
         if episode_match:
             data["episode"] = str(int(episode_match.group(1)))
-            clean_name = re.sub(r'(?i)(?:E|Ep|Episode\s*|-)\s*\d+', '', clean_name)
+            # Episode wala hissa aur uske baad ka sab hata do
+            clean_name = re.sub(r'(?i)(?:E|Ep|Episode\s*|-)\s*\d+.*$', '', clean_name)
         
         # 5. Bacha hua text hamara Title hai
         title = clean_name.replace('_', ' ').replace('.', ' ').strip()
-        # Faltu spaces hatana
-        title = re.sub(r'\s+', ' ', title).strip('- ')
+        # Faltu characters hatana jo titles ke end me reh jate hain
+        title = re.sub(r'\s+', ' ', title).strip('- ').strip()
         data["title"] = title
 
         return data

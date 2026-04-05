@@ -4,6 +4,7 @@ from bot.database import db
 from bot.regex_parser import RegexParser
 from bot.anilist import anilist_api
 from bot.config import Config
+import asyncio
 
 # BOT KI MEMORY (State Management): Yeh yaad rakhega ke kis user se Episode mangna baki hai
 WAITING_FOR_EPISODE = {} 
@@ -20,6 +21,10 @@ async def auto_leech_handler(client: Client, message: Message):
     if not filename:
         return 
 
+    # AGAR FILE PEHLE SE HI "[AniReal" KI HAI, TOH IS HANDLER KO CHOD DO
+    if "[AniReal" in filename:
+        return
+
     parsed_data = RegexParser.parse_filename(filename)
     title = parsed_data["title"]
     ep = parsed_data["episode"]
@@ -35,9 +40,22 @@ async def auto_leech_handler(client: Client, message: Message):
     if not search_results:
         return await status_msg.edit_text(f"❌ Anilist par `{title}` naam ka koi anime nahi mila.")
 
+    # SPECIAL TECHNIQUE: Agar sirf ek result hai toh direct proceed karo
+    # Agar multiple hain par pehla wala EXACT match hai toh bhi proceed karo
+    best_match = None
     if len(search_results) == 1:
-        best_anime = search_results[0]
-        final_title = anilist_api.get_best_title(best_anime)
+        best_match = search_results[0]
+    else:
+        # Check if first result matches title exactly (case insensitive)
+        first_title_romaji = search_results[0]["title"]["romaji"].lower()
+        first_title_english = (search_results[0]["title"]["english"] or "").lower()
+        if title.lower() == first_title_romaji or title.lower() == first_title_english:
+            best_match = search_results[0]
+
+    if best_match:
+        final_title = anilist_api.get_best_title(best_match)
+        # Ek chota sa delay for "cool effect" and to let user see search status
+        await asyncio.sleep(0.5)
         await process_and_send_command(message, status_msg, final_title, ep, season, quality)
     else:
         buttons = []

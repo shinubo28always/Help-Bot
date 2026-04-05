@@ -103,5 +103,8 @@ async def handle_final_upload(client: Client, message: Message):
             
         await status_msg.edit_text(f"✅ **Success!**\nFile `{title}` ke channel me upload ho gayi aur Main Channel me alert chala gaya.")
         
+        # SPECIAL TECHNIC: PM me file delete kar do upload ke baad for clean chat (optional)
+        # await message.delete()
+
     except Exception as e:
         await status_msg.edit_text(f"❌ Upload failed: `{e}`\nCheck karein ke kya Bot Channel mein Admin hai?")
