@@ -6,7 +6,7 @@ class Anilist:
         self.url = Config.ANILIST_URL
 
     async def search_anime(self, title: str):
-        # Anilist ki GraphQL Query (Top 5 results mangne ke liye)
+        # Anilist ki GraphQL Query
         query = """
         query ($search: String) {
           Page (page: 1, perPage: 5) {
@@ -15,6 +15,9 @@ class Anilist:
               title {
                 romaji
                 english
+              }
+              coverImage {
+                large
               }
               episodes
               season
@@ -31,28 +34,29 @@ class Anilist:
                     data = await response.json()
                     
                     if "errors" in data or not data["data"]["Page"]["media"]:
-                        return None # Agar kuch nahi mila
+                        return None
                     
-                    return data["data"]["Page"]["media"] # Top 5 results ki list return karega
+                    return data["data"]["Page"]["media"]
             except Exception as e:
                 print(f"Anilist Error: {e}")
                 return None
 
-    # Title ko clean karke nikalne ka chota function
     def get_best_title(self, media_dict):
-        # Agar english naam hai toh woh le lo, warna romaji le lo
         if media_dict["title"]["english"]:
             return media_dict["title"]["english"]
         return media_dict["title"]["romaji"]
 
-    # Yeh function ID de kar Anime ki details mangwayega
     async def get_anime_by_id(self, anime_id: int):
         query = """
         query ($id: Int) {
           Media (id: $id, type: ANIME) {
+            id
             title {
               romaji
               english
+            }
+            coverImage {
+              large
             }
           }
         }
@@ -70,5 +74,4 @@ class Anilist:
                 print(f"Anilist ID Search Error: {e}")
                 return None
 
-# Database object ki tarah iska bhi object bana lete hain
 anilist_api = Anilist()

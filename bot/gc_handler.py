@@ -40,22 +40,35 @@ async def auto_leech_handler(client: Client, message: Message):
     if not search_results:
         return await status_msg.edit_text(f"❌ Anilist par `{title}` naam ka koi anime nahi mila.")
 
-    # SPECIAL TECHNIQUE: Agar sirf ek result hai toh direct proceed karo
-    # Agar multiple hain par pehla wala EXACT match hai toh bhi proceed karo
+    # SPECIAL TECHNIQUE: Auto-proceed if exact match or only one result
     best_match = None
     if len(search_results) == 1:
         best_match = search_results[0]
     else:
-        # Check if first result matches title exactly (case insensitive)
-        first_title_romaji = search_results[0]["title"]["romaji"].lower()
-        first_title_english = (search_results[0]["title"]["english"] or "").lower()
-        if title.lower() == first_title_romaji or title.lower() == first_title_english:
-            best_match = search_results[0]
+        # Check for EXACT match (case insensitive)
+        for res in search_results:
+            titles = [res["title"]["romaji"].lower()]
+            if res["title"]["english"]:
+                titles.append(res["title"]["english"].lower())
+
+            if title.lower() in titles:
+                best_match = res
+                break
 
     if best_match:
         final_title = anilist_api.get_best_title(best_match)
-        # Ek chota sa delay for "cool effect" and to let user see search status
-        await asyncio.sleep(0.5)
+        # Poster ke saath auto confirm karein
+        await status_msg.delete()
+
+        poster = best_match.get("coverImage", {}).get("large")
+        if poster:
+            status_msg = await message.reply_photo(
+                photo=poster,
+                caption=f"✅ **Auto-Matched:** `{final_title}`\n⏳ Processing..."
+            )
+        else:
+            status_msg = await message.reply_text(f"✅ **Auto-Matched:** `{final_title}`\n⏳ Processing...")
+
         await process_and_send_command(message, status_msg, final_title, ep, season, quality)
     else:
         buttons = []
@@ -80,16 +93,29 @@ async def on_anime_select(client: Client, callback_query: CallbackQuery):
     _, anime_id, ep, season, quality = callback_query.data.split("_")
     
     if ep == "None":
-        ep = None # Wapis Python ke None me convert kar diya
+        ep = None
 
     # ID se Title mangwana
     anime_data = await anilist_api.get_anime_by_id(int(anime_id))
     final_title = anilist_api.get_best_title(anime_data)
 
+    # Poster dikhayen
+    poster = anime_data.get("coverImage", {}).get("large")
+
+    if poster:
+        # Edit existing message to show poster and info
+        await callback_query.message.delete()
+        new_status_msg = await callback_query.message.reply_to_message.reply_photo(
+            photo=poster,
+            caption=f"✅ **Selected:** `{final_title}`\n⏳ Processing..."
+        )
+    else:
+        new_status_msg = await callback_query.message.edit_text(f"✅ **Selected:** `{final_title}`\n⏳ Processing...")
+
     # Ab command bhejne wale function ko call kar do
     await process_and_send_command(
-        callback_query.message.reply_to_message, # Original file wala message
-        callback_query.message, # Button wala message
+        callback_query.message.reply_to_message,
+        new_status_msg,
         final_title, ep, season, quality
     )
 
@@ -98,9 +124,7 @@ async def on_anime_select(client: Client, callback_query: CallbackQuery):
 async def process_and_send_command(original_message: Message, status_msg: Message, title: str, ep: str, season: str, quality: str):
     user_id = original_message.from_user.id
 
-    # Agar Episode nahi mila, toh Bot wait karega aur User se mangega
     if not ep:
-        # Bot ki memory mein data save kar liya
         WAITING_FOR_EPISODE[user_id] = {
             "original_message": original_message,
             "title": title,
@@ -108,10 +132,13 @@ async def process_and_send_command(original_message: Message, status_msg: Messag
             "quality": quality,
             "status_msg": status_msg
         }
-        await status_msg.edit_text(f"⚠️ `{title}` ka **Episode Number** nahi mila!\n\n👇 Please mujhe sirf episode number (jaise `01`, `12`) likh kar bhejein.")
+        prompt_text = f"⚠️ `{title}` ka **Episode Number** nahi mila!\n\n👇 Please mujhe sirf episode number (jaise `01`, `12`) likh kar bhejein."
+        if status_msg.caption:
+            await status_msg.edit_caption(prompt_text)
+        else:
+            await status_msg.edit_text(prompt_text)
         return
 
-    # Agar sab kuch mojood hai, toh final command bhej do
     active_cmd = await db.get_active_command()
     final_file_name = f"[AniReal - Anime] S{season}E{ep} {title} {quality}.mkv"
     final_command = f"{active_cmd} -n {final_file_name}"
@@ -125,19 +152,15 @@ async def process_and_send_command(original_message: Message, status_msg: Messag
 async def catch_episode_number(client: Client, message: Message):
     user_id = message.from_user.id
     
-    # Check karein kya bot is user se episode ka wait kar raha hai?
     if user_id in WAITING_FOR_EPISODE:
         ep = message.text.strip()
         
-        # Check karein ke user ne number hi bheja hai na
         if not ep.isdigit():
             return await message.reply_text("❌ Galat format. Sirf number bhejein (jaise: `05` ya `12`).")
             
-        # Agar number theek hai, toh zero padding lagayein (e.g. 5 ko 05 bana de)
         if len(ep) == 1:
              ep = f"0{ep}"
 
-        # Memory se data bahar nikal lein
         data = WAITING_FOR_EPISODE.pop(user_id)
         original_message = data["original_message"]
         title = data["title"]
@@ -145,12 +168,10 @@ async def catch_episode_number(client: Client, message: Message):
         quality = data["quality"]
         status_msg = data["status_msg"]
 
-        # Final command banayein
         active_cmd = await db.get_active_command()
         final_file_name = f"[AniReal - Anime] S{season}E{ep} {title} {quality}.mkv"
         final_command = f"{active_cmd} -n {final_file_name}"
         
-        # Message delete karke original file par command reply karein
         await status_msg.delete()
-        await message.delete() # Aapne jo number likha tha, us message ko bhi delete kar dega for clean chat
+        await message.delete()
         await original_message.reply_text(f"`{final_command}`", quote=True)

@@ -65,6 +65,10 @@ async def handle_final_upload(client: Client, message: Message):
     # Database se Check karna ke kya yeh Anime kisi channel se connected hai?
     channel_data = await db.get_channel_map(title)
     if not channel_data:
+        # Try finding by removing extra words if direct match fails
+        channel_data = await db.get_channel_map(title.split(' - ')[0])
+
+    if not channel_data:
         return await status_msg.edit_text(
             f"❌ `{title}` ka koi Channel Database mein nahi mila!\n"
             f"Pehle Us Anime ke channel mein Bot ko admin banayein aur yeh send karein:\n\n"
@@ -85,8 +89,7 @@ async def handle_final_upload(client: Client, message: Message):
         uploaded_msg = await message.copy(
             chat_id=channel_data["channel_id"],
             caption=final_caption,
-            # HTML parsing on rakhna taake Bold/Italic kaam kare
-            parse_mode=None # Pyrogram default par HTML aur Markdown dono allow karta hai
+            parse_mode=None
         )
         
         # Main Channel me Announcement Post karna
@@ -103,8 +106,5 @@ async def handle_final_upload(client: Client, message: Message):
             
         await status_msg.edit_text(f"✅ **Success!**\nFile `{title}` ke channel me upload ho gayi aur Main Channel me alert chala gaya.")
         
-        # SPECIAL TECHNIC: PM me file delete kar do upload ke baad for clean chat (optional)
-        # await message.delete()
-
     except Exception as e:
         await status_msg.edit_text(f"❌ Upload failed: `{e}`\nCheck karein ke kya Bot Channel mein Admin hai?")
