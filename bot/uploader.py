@@ -40,6 +40,11 @@ async def set_caption_cmd(client: Client, message: Message):
 # 2. AUTO UPLOAD TO CHANNEL & ANNOUNCEMENT
 # ==========================================
 @Client.on_message(filters.private & (filters.document | filters.video) & filters.user(Config.OWNER_ID))
+@Client.on_message(filters.private & (filters.document | filters.video))
+async def handle_final_upload(client: Client, message: Message):
+    # Ab function ke andar admin check karein
+    if not await db.is_admin(message.from_user.id):
+        return
 async def handle_final_upload(client: Client, message: Message):
     # Sirf us file par kaam karega jisme hamara tag "[AniReal" ho (taake regular files ignore hon)
     filename = message.document.file_name if message.document else message.video.file_name
