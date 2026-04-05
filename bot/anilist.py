@@ -47,3 +47,28 @@ class Anilist:
 
 # Database object ki tarah iska bhi object bana lete hain
 anilist_api = Anilist()
+
+# Yeh function ID de kar Anime ki details mangwayega
+    async def get_anime_by_id(self, anime_id: int):
+        query = """
+        query ($id: Int) {
+          Media (id: $id, type: ANIME) {
+            title {
+              romaji
+              english
+            }
+          }
+        }
+        """
+        variables = {"id": anime_id}
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.post(self.url, json={"query": query, "variables": variables}) as response:
+                    data = await response.json()
+                    if "errors" in data or not data["data"]["Media"]:
+                        return None
+                    return data["data"]["Media"]
+            except Exception as e:
+                print(f"Anilist ID Search Error: {e}")
+                return None
