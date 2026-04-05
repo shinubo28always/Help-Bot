@@ -45,10 +45,7 @@ class Anilist:
             return media_dict["title"]["english"]
         return media_dict["title"]["romaji"]
 
-# Database object ki tarah iska bhi object bana lete hain
-anilist_api = Anilist()
-
-# Yeh function ID de kar Anime ki details mangwayega
+    # Yeh function ID de kar Anime ki details mangwayega
     async def get_anime_by_id(self, anime_id: int):
         query = """
         query ($id: Int) {
@@ -72,3 +69,6 @@ anilist_api = Anilist()
             except Exception as e:
                 print(f"Anilist ID Search Error: {e}")
                 return None
+
+# Database object ki tarah iska bhi object bana lete hain
+anilist_api = Anilist()

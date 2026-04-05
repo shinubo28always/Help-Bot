@@ -39,13 +39,15 @@ async def set_caption_cmd(client: Client, message: Message):
 # ==========================================
 # 2. AUTO UPLOAD TO CHANNEL & ANNOUNCEMENT
 # ==========================================
-@Client.on_message(filters.private & (filters.document | filters.video) & filters.user(Config.OWNER_ID))
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def handle_final_upload(client: Client, message: Message):
+    if not message.from_user:
+        return
+
     # Ab function ke andar admin check karein
     if not await db.is_admin(message.from_user.id):
         return
-async def handle_final_upload(client: Client, message: Message):
+
     # Sirf us file par kaam karega jisme hamara tag "[AniReal" ho (taake regular files ignore hon)
     filename = message.document.file_name if message.document else message.video.file_name
     if not filename or "[AniReal" not in filename:
@@ -101,5 +103,8 @@ async def handle_final_upload(client: Client, message: Message):
             
         await status_msg.edit_text(f"✅ **Success!**\nFile `{title}` ke channel me upload ho gayi aur Main Channel me alert chala gaya.")
         
+        # SPECIAL TECHNIC: PM me file delete kar do upload ke baad for clean chat (optional)
+        # await message.delete()
+
     except Exception as e:
         await status_msg.edit_text(f"❌ Upload failed: `{e}`\nCheck karein ke kya Bot Channel mein Admin hai?")
