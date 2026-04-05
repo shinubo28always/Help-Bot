@@ -18,5 +18,16 @@ class Database:
     async def set_active_command(self, cmd):
         await self.settings.update_one({"_id": "leech_cmd"}, {"$set": {"cmd": cmd}}, upsert=True)
 
+# Yeh channel data save karega jab aap /setcap use karenge
+    async def set_channel_map(self, title: str, channel_id: int, caption: str):
+        await self.channels.update_one(
+            {"_id": title.lower()},
+            {"$set": {"title": title, "channel_id": channel_id, "caption": caption}},
+            upsert=True
+        )
+
+    # Yeh data nikalega jab file upload karni hogi
+    async def get_channel_map(self, title: str):
+        return await self.channels.find_one({"_id": title.lower()})
 # Database object create kar liya
 db = Database()
