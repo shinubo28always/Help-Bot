@@ -10,11 +10,11 @@ WAITING_FOR_EPISODE = {}
 
 @Client.on_message(filters.document | filters.video)
 async def auto_leech_handler(client: Client, message: Message):
-    if message.from_user and message.from_user.id != Config.OWNER_ID:
+    if not message.from_user:
         return
 
-    if not message.from_user or not await db.is_admin(message.from_user.id):
-    return
+    if not await db.is_admin(message.from_user.id):
+        return
     
     filename = message.document.file_name if message.document else message.video.file_name
     if not filename:
