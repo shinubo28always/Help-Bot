@@ -9,7 +9,8 @@ app = Client(
     "AnimeUploaderBot",
     api_id=Config.API_ID,
     api_hash=Config.API_HASH,
-    bot_token=Config.BOT_TOKEN
+    bot_token=Config.BOT_TOKEN,
+    plugins=dict(root="bot") # YEH LINE ADD KARNI HAI (Taake gc_handler automatically connect ho jaye)
 )
 
 @app.on_message(filters.command("start") & filters.private)
