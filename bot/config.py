@@ -9,6 +9,5 @@ class Config:
     BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
     MONGO_URI = os.environ.get("MONGO_URI", "")
     OWNER_ID = int(os.environ.get("OWNER_ID", 0))
-    
-    # Anilist API URL
+    MAIN_CHANNEL_ID = int(os.environ.get("MAIN_CHANNEL_ID", 0))
     ANILIST_URL = "https://graphql.anilist.co"
