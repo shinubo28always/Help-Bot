@@ -29,5 +29,23 @@ class Database:
     # Yeh data nikalega jab file upload karni hogi
     async def get_channel_map(self, title: str):
         return await self.channels.find_one({"_id": title.lower()})
+
+# === ADMIN MANAGEMENT ===
+    async def add_admin(self, user_id: int):
+        await self.users.update_one({"_id": user_id}, {"$set": {"is_admin": True}}, upsert=True)
+
+    async def remove_admin(self, user_id: int):
+        await self.users.delete_one({"_id": user_id})
+
+    async def get_admins(self):
+        cursor = self.users.find({"is_admin": True})
+        return [doc["_id"] async for doc in cursor]
+
+    async def is_admin(self, user_id: int):
+        from bot.config import Config
+        if user_id == Config.OWNER_ID:
+            return True # Owner hamesha admin hota hai
+        user = await self.users.find_one({"_id": user_id, "is_admin": True})
+        return bool(user)
 # Database object create kar liya
 db = Database()
